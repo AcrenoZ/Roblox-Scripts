@@ -2722,6 +2722,10 @@ local function VFEDOFI_fake_script() -- AnimeFightersSimulator.Main
 	TeleportBtn.MouseButton1Click:Connect(function()
 		PagesLayout:JumpTo(TeleportFrame)
 	end)
+		
+		StarBtn.MouseButton1Click:Connect(function()
+	PagesLayout:JumpTo(StarFrame)
+end)
 	
 	DestroyHubBtn.MouseButton1Click:Connect(function()
 		script.Parent.Parent:Destroy()
