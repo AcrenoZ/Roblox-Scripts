@@ -1,0 +1,324 @@
+local TweenService = game:GetService("TweenService")
+local Storage = game:WaitForChild("ReplicatedStorage")
+local Bindable = Storage:WaitForChild("Bindable")
+local Player = game.Players.LocalPlayer
+
+local NotificationsAmount = 0
+
+local module = {}
+
+function module:ResizeScrollingFrameCanvasSize(ScrollingFrame, UILayout, toAdd)
+	if ScrollingFrame == nil then
+		return error("[Ulysses Util]: 'ScrollingFrame' is missing!")
+	elseif not ScrollingFrame:IsA("ScrollingFrame") then
+		return error("[Ulysses Util]: 'ScrollingFrame' must be a ScrollingFrame!")
+	end
+	
+	if UILayout == nil then
+		return error("[Ulysses Util]: 'UILayout' is missing!")
+	elseif not UILayout:IsA("UIListLayout") then
+		return error("[Ulysses Util]: 'UILayout' must be a UIListLayout!")
+	end
+	
+	if toAdd == nil then
+		toAdd = 0
+	elseif typeof(toAdd) ~= "number" then
+		return error("[Ulysses Util]: 'toAdd' must be a number!")
+	end
+	
+	if ScrollingFrame.ScrollingDirection == Enum.ScrollingDirection.XY then
+		
+	end
+	
+	if ScrollingFrame.ScrollingDirection == Enum.ScrollingDirection.XY then
+		ScrollingFrame.CanvasSize = UDim2.new(0, ScrollingFrame.UIListLayout.AbsoluteContentSize.X + toAdd, 0, ScrollingFrame.UIListLayout.AbsoluteContentSize.Y + toAdd)
+	elseif ScrollingFrame.ScrollingDirection == Enum.ScrollingDirection.X then
+		ScrollingFrame.CanvasSize = UDim2.new(0, ScrollingFrame.UIListLayout.AbsoluteContentSize.X + toAdd, 0, 0)
+	elseif ScrollingFrame.ScrollingDirection == Enum.ScrollingDirection.Y then
+		ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, ScrollingFrame.UIListLayout.AbsoluteContentSize.Y + toAdd)
+	end
+end
+
+function module:SetCameraTo(Camera, Target)
+	if Camera == nil then
+		return error("[Ulysses Util]: 'Camera' is missing!")
+	elseif not Camera:IsA("Camera") then
+		return error("[Ulysses Util]: 'Camera' must be a camera!")
+	end
+	
+	if Target == nil then
+		return error("[Ulysses Util]: 'Target' is missing!")
+	end
+	
+	Camera.CameraSubject = Target
+end
+
+function module:TeleportTo(Target, TargetDestination, toAdd, isTween)
+	if Target == nil then
+		return error("[Ulysses Util]: 'Target' is missing!")
+	end
+	
+	if TargetDestination == nil then
+		return error("[Ulysses Util]: 'TargetDestination' is missing!")
+	end
+	
+	if toAdd == nil then
+		return error("[Ulysses Util]: 'toAdd' is missing!")
+	elseif typeof(toAdd) ~= "Vector3" then
+		return error("[Ulysses Util]: 'toAdd' must be a Vector3!")
+	end
+	
+	if isTween == nil then
+		isTween = false
+	elseif typeof(isTween) ~= "boolean" then
+		return error("[Ulysses Util]: 'Camera' must be a boolean!")
+	end
+	
+	if isTween == true then
+		TweenService:Create(Target, TweenInfo.new(.5, Enum.EasingStyle.Sine, Enum.EasingDirection.Out, 0, false, 0), { CFrame = CFrame.new(TargetDestination.Position) + toAdd }):Play()	
+	else
+		Target.CFrame = CFrame.new(TargetDestination.Position) + toAdd
+	end
+end
+
+function module:GetNearestEnemy(target, world)
+	if target == nil then
+		return error("[Ulysses Utilities]: 'target' is missing!")
+	end
+
+	if world == nil then
+		return error("[Ulysses Utilities]: 'world' is missing!")
+	end
+
+	local Character = Player.Character
+	local HumanoidRootPart = Character and Character:FindFirstChild("HumanoidRootPart")
+
+	if not (Character or HumanoidRootPart) then
+		return
+	end
+
+	local Distance = 99
+	local Target = nil
+
+	for i,v in pairs(workspace.Worlds[world].Enemies:GetChildren()) do
+		if v.Name == target and v:FindFirstChild("HumanoidRootPart") then
+			local TargetHRP = v.HumanoidRootPart.Position
+			local NewDistance = math.floor((TargetHRP - Player.Character.Head.Position).Magnitude)
+
+			if NewDistance < Distance then
+				Target = v
+			end
+		end
+	end
+
+	return Target
+end
+
+function module:SendPetsToEnemy(target)
+	if target == nil then
+		return error("[Ulysses Utilities]: 'target' is missing!")
+	end
+
+	for i, v in pairs(workspace.Pets:GetChildren()) do
+		if v.Data.Owner.Value == Player then
+			Bindable.SendPet:Fire(target, false)
+		end
+	end	
+end
+
+function module:CreateSlider(minvalue, maxvalue, sliderbtn, sliderframe, valuelabel, slidercont, callback)
+	minvalue = minvalue or 0
+	maxvalue = maxvalue or 100
+	callback = callback or function() end
+
+	local sliderbutton = sliderbtn
+	local sliderframe = sliderframe
+	local value = valuelabel or nil
+	local moveconnection
+	local releaseconnection
+	local slidercontainer = slidercont
+
+	local mouse = game.Players.LocalPlayer:GetMouse()
+	local uis = game:GetService("UserInputService")
+	local Value
+
+	sliderbutton.MouseButton1Down:Connect(function()
+		Value = math.floor((((tonumber(maxvalue) - tonumber(minvalue)) / slidercontainer.AbsoluteSize.X) * sliderframe.AbsoluteSize.X) + tonumber(minvalue)) or 0
+		pcall(function()
+			callback(Value)
+		end)
+		sliderframe.Size = UDim2.new(0, math.clamp(mouse.X - sliderframe.AbsolutePosition.X, 0, slidercontainer.AbsoluteSize.X), 0, slidercontainer.AbsoluteSize.Y)
+		moveconnection = mouse.Move:Connect(function()
+			value.Text = Value
+			Value = math.floor((((tonumber(maxvalue) - tonumber(minvalue)) / slidercontainer.AbsoluteSize.X) * sliderframe.AbsoluteSize.X) + tonumber(minvalue))
+			pcall(function()
+				callback(Value)
+			end)
+			sliderframe.Size = UDim2.new(0, math.clamp(mouse.X - sliderframe.AbsolutePosition.X, 0, slidercontainer.AbsoluteSize.X), 0, slidercontainer.AbsoluteSize.Y)
+		end)
+		releaseconnection = uis.InputEnded:Connect(function(Mouse)
+			if Mouse.UserInputType == Enum.UserInputType.MouseButton1 then
+				Value = math.floor((((tonumber(maxvalue) - tonumber(minvalue)) / slidercontainer.AbsoluteSize.X) * sliderframe.AbsoluteSize.X) + tonumber(minvalue))
+				pcall(function()
+					callback(Value)
+				end)
+				sliderframe.Size = UDim2.new(0, math.clamp(mouse.X - sliderframe.AbsolutePosition.X, 0, slidercontainer.AbsoluteSize.X), 0, slidercontainer.AbsoluteSize.Y)
+				moveconnection:Disconnect()
+				releaseconnection:Disconnect()
+			end
+		end)
+	end)
+end
+
+function module:InitNotificationSystem()
+	local NotificationCont = {}
+	local Gui = game.Players.LocalPlayer.PlayerGui:FindFirstChild("UlyssesNotifications")
+
+	if not Gui then
+		local UlyssesNotifications = Instance.new("ScreenGui")
+		local NotifcationContainer = Instance.new("Frame")
+		local UIListLayout = Instance.new("UIListLayout")
+
+		UlyssesNotifications.Name = "UlyssesNotifications"
+		UlyssesNotifications.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+		UlyssesNotifications.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+		NotifcationContainer.Name = "NotifcationContainer"
+		NotifcationContainer.Parent = UlyssesNotifications
+		NotifcationContainer.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+		NotifcationContainer.Position = UDim2.new(0, 0, 0.986622095, -590)
+		NotifcationContainer.Size = UDim2.new(0, 301, 0, 598)
+		NotifcationContainer.BackgroundTransparency = 1
+
+		UIListLayout.Parent = NotifcationContainer
+		UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+		UIListLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom	
+		UIListLayout.Padding = UDim.new(0, 8)
+		UIListLayout.SortOrder = Enum.SortOrder.Name
+	end
+
+	function NotificationCont:SendNotification(HeaderText, HeaderTextColor, NotifText, NotifColor, Duration, isInLeft)
+		if HeaderText == nil then
+			HeaderText = "Notification"
+		end
+
+		if HeaderTextColor == nil then
+			return error("[Ulysses Notifications]: 'HeaderTextColor' is missing!")
+		elseif typeof(HeaderTextColor) ~= "Color3" then
+			return error("[Ulysses Notifications]: 'HeaderTextColor' must be a Color3!")
+		end
+
+		if NotifText == nil then
+			NotifText = "No content provided."
+		end
+
+		if NotifColor == nil then
+			return error("[Ulysses Notifications]: 'NotifTextColor' is missing!")
+		elseif typeof(NotifColor) ~= "Color3" then
+			return error("[Ulysses Notifications]: 'NotifTextColor' must be a Color3!")
+		end
+
+		if Duration == nil then
+			return error("[Ulysses Notifications]: 'Duration' is missing!")
+		elseif typeof(Duration) ~= "number" then
+			return error("[Ulysses Notifications]: 'Duration' must be a number!")
+		end
+
+		if isInLeft == nil then
+			isInLeft = false
+		elseif typeof(isInLeft) ~= "boolean" then
+			return error("[Ulysses Notifications]: 'isInLeft' must be a boolean!")
+		end
+
+		spawn(function()
+			NotificationsAmount = NotificationsAmount + 1
+
+			local Notification = Instance.new("Frame")
+			local Frame = Instance.new("Frame")
+			local UICorner = Instance.new("UICorner")
+			local NotifHeaderText = Instance.new("TextLabel")
+			local NotifMessage = Instance.new("TextLabel")
+			local UICorner_2 = Instance.new("UICorner")
+			local UIListLayout = Instance.new("UIListLayout")
+
+			Notification.Name = "Notification".. NotificationsAmount
+			Notification.Parent = game.Players.LocalPlayer.PlayerGui.UlyssesNotifications.NotifcationContainer
+			Notification.BackgroundColor3 = NotifColor
+			Notification.Position = UDim2.new(0.0341750011, 0, 0.884544909, 0)
+			Notification.Size = UDim2.new(0, 280, 0, 63)
+			Notification.BackgroundTransparency = 1
+
+			Frame.Parent = Notification
+			Frame.BackgroundColor3 = Color3.fromRGB(39, 39, 39)
+			Frame.Position = UDim2.new(0.0250000004, 0, -0.00355166476, 0)
+			Frame.Size = UDim2.new(0, 267, 0, 63)
+			Frame.BackgroundTransparency = 1
+
+			UICorner.CornerRadius = UDim.new(0, 10)
+			UICorner.Parent = Frame
+
+			NotifHeaderText.Name = "NotifHeaderText"
+			NotifHeaderText.Parent = Frame
+			NotifHeaderText.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+			NotifHeaderText.BackgroundTransparency = 1.000
+			NotifHeaderText.Position = UDim2.new(0, 0, 0, 1)
+			NotifHeaderText.Size = UDim2.new(0, 267, 0, 21)
+			NotifHeaderText.Font = Enum.Font.Highway
+			NotifHeaderText.Text = HeaderText
+			NotifHeaderText.TextColor3 = HeaderTextColor
+			NotifHeaderText.TextScaled = true
+			NotifHeaderText.TextSize = 14.000
+			NotifHeaderText.TextWrapped = true
+			NotifHeaderText.TextTransparency = 1
+
+			NotifMessage.Name = "NotifMessage"
+			NotifMessage.Parent = Frame
+			NotifMessage.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+			NotifMessage.BackgroundTransparency = 1.000
+			NotifMessage.Position = UDim2.new(0, 0, 0.398999989, 0)
+			NotifMessage.Size = UDim2.new(0, 266, 0, 38)
+			NotifMessage.Font = Enum.Font.Highway
+			NotifMessage.Text = NotifText
+			NotifMessage.TextColor3 = Color3.fromRGB(255, 255, 255)
+			NotifMessage.TextScaled = true
+			NotifMessage.TextSize = 14.000
+			NotifMessage.TextWrapped = true
+			NotifMessage.TextTransparency = 1
+
+			UICorner_2.CornerRadius = UDim.new(0, 10)
+			UICorner_2.Parent = Notification
+
+			UIListLayout.Parent = Notification
+			UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+			UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+			local s = TweenService:Create(Notification, TweenInfo.new(.5), { BackgroundTransparency = 0 })
+			TweenService:Create(Frame, TweenInfo.new(.5), { BackgroundTransparency = 0 }):Play()
+			TweenService:Create(NotifHeaderText, TweenInfo.new(.5), { TextTransparency = 0 }):Play()
+			TweenService:Create(NotifMessage, TweenInfo.new(.5), { TextTransparency = 0 }):Play()
+			s:Play()
+
+			s.Completed:Wait()
+
+			wait(Duration)
+
+			local w = TweenService:Create(Notification, TweenInfo.new(.5), { BackgroundTransparency = 1 })
+			TweenService:Create(Frame, TweenInfo.new(.5), { BackgroundTransparency = 1 }):Play()
+			TweenService:Create(NotifHeaderText, TweenInfo.new(.5), { TextTransparency = 1 }):Play()
+			TweenService:Create(NotifMessage, TweenInfo.new(.5), { TextTransparency = 1 }):Play()
+			w:Play()
+
+			w.Completed:Wait()
+
+			Notification:Destroy()
+		end)
+	end
+
+	return NotificationCont
+end
+
+function module:EnableFreecam()
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/AcrenoZ/Roblox-Scripts/main/Freecam"))()
+end
+
+return module
